@@ -70,6 +70,14 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .lotbtn{border:0;background:none;padding:4px 0;font-size:12px;color:var(--rust);cursor:pointer;text-decoration:underline dotted}
 .lotrow{display:grid;grid-template-columns:1fr 180px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)}
 .lotrow input{padding:10px}
+.picker{width:100%;text-align:left;font:inherit;padding:12px 40px 12px 12px;border:1px solid var(--line);border-radius:10px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%237A6A62' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 14px center;color:var(--ink);cursor:pointer;min-height:48px}
+.picker.empty{color:var(--muted)}
+.cp-list{max-height:46vh;overflow-y:auto;border:1px solid var(--line);border-radius:10px;margin-top:10px;text-align:left}
+.cp-item{display:flex;justify-content:space-between;gap:10px;width:100%;border:0;border-bottom:1px solid var(--line);background:#fff;padding:14px 12px;font:600 15px/1.2 system-ui;color:var(--ink);cursor:pointer;text-align:left}
+.cp-item:last-child{border-bottom:0}
+.cp-item span{font-weight:400;font-size:12px;color:var(--muted);white-space:nowrap}
+.cp-item.pin{background:var(--terra-soft)}
+.editbar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#FDF1DC;border:1px solid #F3D9A6;color:#6B4A0C;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-weight:600}
 .muted{color:var(--muted)} .hint{font-size:13px;color:var(--muted);margin-top:6px}
 .warnbox{background:#FDF1DC;border:1px solid #F3D9A6;color:#6B4A0C;border-radius:10px;padding:10px 12px;font-size:14px;margin-top:10px}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120px);background:var(--ink);color:#fff;padding:14px 20px;border-radius:12px;font-weight:600;transition:transform .25s;z-index:20;max-width:90vw;text-align:center}
@@ -107,6 +115,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 <main>
   <!-- ======================= PRESTATION ======================= -->
   <section id="t-presta">
+    <div class="editbar hide" id="p-edit"><span></span><button class="btn ghost small" id="p-edit-cancel">Abandonner la modification</button></div>
     <div class="grid">
       <div class="card">
         <h2>Réservation <span class="blno" id="p-no" style="float:right"></span></h2>
@@ -115,7 +124,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
           <div><label class="f">Heure</label><input type="time" id="p-heure"></div>
         </div>
         <label class="f">Client / Agence</label>
-        <input id="p-client" list="dl-clients" placeholder="Nom de l'agence ou du client" autocomplete="off">
+        <button type="button" class="picker empty" id="p-client">Choisir dans la liste…</button>
         <label class="f">Type de client</label>
         <div class="chips" id="p-type"></div>
         <label class="f">Formule</label>
@@ -148,6 +157,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 
   <!-- ======================= VENTE ======================= -->
   <section id="t-vente" class="hide">
+    <div class="editbar hide" id="v-edit"><span></span><button class="btn ghost small" id="v-edit-cancel">Abandonner la modification</button></div>
     <div class="grid">
       <div class="card">
         <h2>Produits</h2>
@@ -161,7 +171,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
         </div>
         <div id="v-client-wrap" class="hide">
           <label class="f">Client / Agence</label>
-          <input id="v-client" list="dl-clients" placeholder="Nom de l'agence ou du client" autocomplete="off">
+          <button type="button" class="picker empty" id="v-client">Choisir dans la liste…</button>
         </div>
         <label class="f">Type de sortie</label>
         <div class="chips" id="v-type">
@@ -266,7 +276,6 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
   </section>
 </main>
 
-<datalist id="dl-clients"></datalist>
 <div id="toast"></div>
 <div class="modal" id="done">
   <div class="card">
@@ -276,6 +285,31 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
     <div class="row" style="margin-top:18px;gap:8px">
       <button class="btn ghost" id="done-print">Imprimer</button>
       <button class="btn primary" id="done-ok">OK</button>
+    </div>
+  </div>
+</div>
+<div class="modal" id="cp">
+  <div class="card" style="max-width:560px;text-align:left">
+    <div id="cp-pick">
+      <h2>Client / Agence</h2>
+      <input id="cp-q" placeholder="Rechercher…" autocomplete="off">
+      <div class="cp-list" id="cp-list"></div>
+      <div class="row" style="margin-top:12px;gap:8px">
+        <button class="btn ghost" id="cp-new">+ Nouvelle agence</button>
+        <button class="btn ghost" id="cp-close">Fermer</button>
+      </div>
+    </div>
+    <div id="cp-form" class="hide">
+      <h2>Nouvelle agence / client</h2>
+      <label class="f">Nom</label>
+      <input id="cp-nom" autocomplete="off" autocapitalize="characters" placeholder="Ex. : GATE 1 TRAVEL">
+      <div class="warnbox hide" id="cp-similar"></div>
+      <label class="f">Type de client</label>
+      <div class="chips" id="cp-type"></div>
+      <div class="row" style="margin-top:16px;gap:8px">
+        <button class="btn primary" id="cp-add">Ajouter et choisir</button>
+        <button class="btn ghost" id="cp-back">Retour</button>
+      </div>
     </div>
   </div>
 </div>
@@ -351,7 +385,7 @@ function load(){
   s = s || {};
   return Object.assign({
     url:'', key:'', device:'Tablette 1', pin:'1234',
-    nextPresta:1, nextVente:1, dayVente:null, lots:{}, lotsDirty:false,
+    nextPresta:1, nextVente:1, dayVente:null, lots:{}, lotsDirty:false, newClients:[], clientsDirty:false,
     config: DEFAULT_CONFIG, records:[], lastSync:null, lastError:''
   }, s);
 }
@@ -436,6 +470,70 @@ function venteNumber(separe, peek){
 }
 
 /* =====================================================================
+   CLIENTS : liste fermée + ajout contrôlé
+   ===================================================================== */
+const PARTICULIER = 'PARTICULIER';
+const normName = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+function lev(a, b){
+  if (Math.abs(a.length - b.length) > 3) return 9;
+  const d = Array.from({length:a.length+1}, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1] + (a[i-1]===b[j-1]?0:1));
+  return d[a.length][b.length];
+}
+function allClients(){
+  const seen = new Set(), out = [];
+  [...(S.newClients||[]), ...C().clients].forEach(c => { const k = normName(c.nom); if (k && !seen.has(k) && k !== PARTICULIER) { seen.add(k); out.push(c); } });
+  return out.sort((a,b) => a.nom.localeCompare(b.nom, 'fr'));
+}
+function similarClients(nom){
+  const k = normName(nom); if (k.length < 3) return [];
+  return allClients().filter(c => { const o = normName(c.nom); return o === k || o.includes(k) || k.includes(o) || lev(o, k) <= 2; }).slice(0, 4);
+}
+let cpCb = null, cpType = 'Agence Maroc';
+function openClientPicker(cb){
+  cpCb = cb; $('cp-q').value = ''; $('cp-pick').classList.remove('hide'); $('cp-form').classList.add('hide');
+  renderCpList(); $('cp').classList.add('show'); setTimeout(() => $('cp-q').focus(), 50);
+}
+function renderCpList(){
+  const q = normName($('cp-q').value);
+  const list = allClients().filter(c => !q || normName(c.nom).includes(q));
+  $('cp-list').innerHTML = (!q || PARTICULIER.includes(q) ? `<button class="cp-item pin" data-n="${PARTICULIER}" data-t="Particulier">Particulier (visiteur individuel)<span>Particulier</span></button>` : '') +
+    list.map(c => `<button class="cp-item" data-n="${esc(c.nom)}" data-t="${esc(c.type||'')}">${esc(c.nom)}<span>${esc(c.type||'')}</span></button>`).join('') +
+    (list.length ? '' : `<div class="muted" style="padding:14px">Aucun résultat. Utilisez « + Nouvelle agence ».</div>`);
+}
+$('cp-q').oninput = renderCpList;
+$('cp-list').onclick = e => { const b = e.target.closest('.cp-item'); if (!b) return; $('cp').classList.remove('show'); cpCb && cpCb({nom:b.dataset.n, type:b.dataset.t}); };
+$('cp-close').onclick = () => $('cp').classList.remove('show');
+$('cp-new').onclick = () => {
+  $('cp-pick').classList.add('hide'); $('cp-form').classList.remove('hide');
+  $('cp-nom').value = $('cp-q').value.trim().toUpperCase(); cpType = 'Agence Maroc';
+  chips($('cp-type'), C().types_client.filter(t => t !== 'Particulier'), () => cpType, v => cpType = v);
+  $('cp-nom').oninput(); $('cp-nom').focus();
+};
+$('cp-back').onclick = () => { $('cp-form').classList.add('hide'); $('cp-pick').classList.remove('hide'); };
+$('cp-nom').oninput = () => {
+  const sim = similarClients($('cp-nom').value), w = $('cp-similar');
+  w.classList.toggle('hide', !sim.length);
+  w.innerHTML = sim.length ? 'Existe peut-être déjà : ' + sim.map(c => `<button type="button" class="lotbtn" data-n="${esc(c.nom)}" data-t="${esc(c.type||'')}" style="font-size:14px;margin-right:8px">${esc(c.nom)}</button>`).join('') + '<br><small>Touchez un nom pour l\'utiliser.</small>' : '';
+};
+$('cp-similar').onclick = e => { const b = e.target.closest('[data-n]'); if (!b) return; $('cp').classList.remove('show'); cpCb && cpCb({nom:b.dataset.n, type:b.dataset.t}); };
+$('cp-add').onclick = () => {
+  const nom = $('cp-nom').value.trim().replace(/\s+/g,' ').toUpperCase();
+  if (normName(nom).length < 2) return toast('Nom trop court.');
+  const exact = allClients().find(c => normName(c.nom) === normName(nom));
+  if (exact) { $('cp').classList.remove('show'); cpCb && cpCb(exact); return toast('Déjà dans la liste : ' + exact.nom); }
+  const c = {nom, type:cpType};
+  S.newClients = S.newClients || []; S.newClients.push(c); S.clientsDirty = true; save(); updSync(); sync();
+  $('cp').classList.remove('show'); cpCb && cpCb(c); toast('Ajouté : ' + nom);
+};
+function setPicker(el, nom){
+  el.textContent = nom ? (nom === PARTICULIER ? 'Particulier (visiteur individuel)' : nom) : 'Choisir dans la liste…';
+  el.classList.toggle('empty', !nom);
+}
+
+/* =====================================================================
    PRESTATION
    ===================================================================== */
 let P;
@@ -474,9 +572,11 @@ function prestaPrice(){
   $('p-prix-hint').textContent = fr;
 }
 function renderPresta(){
-  $('p-no').textContent = 'N° ' + (Math.max(S.nextPresta, (C().dernier_bl?.PRESTATION||0)+1, C().premier_bl?.PRESTATION||0));
+  $('p-no').textContent = P.editOf ? 'N° ' + P.n_bl : 'N° ' + (Math.max(S.nextPresta, (C().dernier_bl?.PRESTATION||0)+1, C().premier_bl?.PRESTATION||0));
   $('p-date').value = P.date; $('p-heure').value = P.heure;
-  $('p-client').value = P.client; $('p-notes').value = P.notes;
+  setPicker($('p-client'), P.client); $('p-notes').value = P.notes;
+  $('p-edit').classList.toggle('hide', !P.editOf);
+  if (P.editOf) $('p-edit').querySelector('span').textContent = `Modification du BL prestation n° ${P.n_bl}`;
   chips($('p-type'), C().types_client, () => P.type_client, v => { P.type_client = v; prestaPrice(); updPrestaTotal(); });
   chips($('p-formule'), C().formules.map(f => ({v:f.nom, lbl:f.nom, sub:f.vins.length ? f.vins.length+' vins' : ''})),
         () => P.formule, v => { P.formule = v; P.prixTouched = false; prestaLinesFromFormule(); prestaPrice(); renderPLines(); updPrestaTotal(); });
@@ -508,11 +608,12 @@ $('p-date').onchange = e => P.date = e.target.value;
 $('p-heure').onchange = e => P.heure = e.target.value;
 $('p-notes').oninput = e => P.notes = e.target.value;
 $('p-prix').oninput = e => { P.prix = Number(e.target.value)||0; P.prixTouched = true; updPrestaTotal(); };
-$('p-client').oninput = e => {
-  P.client = e.target.value;
-  const c = C().clients.find(x => x.nom.toUpperCase() === P.client.trim().toUpperCase());
-  if (c && c.type && C().types_client.includes(c.type)) { P.type_client = c.type; renderPresta(); $('p-client').focus(); }
-};
+$('p-client').onclick = () => openClientPicker(c => {
+  P.client = c.nom;
+  if (c.type && C().types_client.includes(c.type)) { P.type_client = c.type; P.prixTouched = false; }
+  renderPresta();
+});
+$('p-edit-cancel').onclick = () => { newPresta(); renderPresta(); };
 $('p-add').onchange = e => {
   if (!e.target.value) return;
   P.lines.push({produit:e.target.value, type_mvt:'Sortie (Prestation)', qte:1, touched:true, extra:true});
@@ -523,13 +624,16 @@ $('p-save').onclick = () => {
   if (!P.formule) return toast('Choisissez une formule.');
   if (!P.pax && !P.grat) return toast('Indiquez le nombre de PAX.');
   if (!P.mode) return toast('Choisissez le mode de paiement.');
-  const n = takePresta();
+  const orig = P.editOf ? S.records.find(r => r.uuid === P.editOf) : null;
+  if (P.editOf && (!orig || isCancelled(orig.uuid))) { toast('Ce bon a déjà été modifié ou annulé.'); newPresta(); renderPresta(); return; }
+  const n = orig ? orig.n_bl : takePresta();
+  if (orig) annuler(orig, 'MODIFICATION', true);
   const lignes = P.lines.filter(l => l.qte > 0).map(l => ({type_mvt:l.type_mvt, produit:l.produit, lot:lineLot(l), entree:'', sortie:l.qte, prix:'', total:''}));
   const montant = P.pax * (Number(P.prix)||0);
   addRecord({kind:'PRESTATION', n_bl:n, date:P.date, heure:P.heure, client:P.client.trim(), type_client:P.type_client,
     formule:P.formule, pax:P.pax, gratuites:P.grat, prix_unitaire:Number(P.prix)||0, montant_prestation:montant,
-    total_produits:0, remise:0, total:montant, mode_paiement:P.mode, notes:P.notes, lignes});
-  showDone('BL prestation', n, `${P.client.trim()} · ${P.formule} · ${P.pax} PAX · ${fmt(montant)}`);
+    total_produits:0, remise:0, total:montant, mode_paiement:P.mode, notes:P.notes, lignes, remplace_uuid: orig ? orig.uuid : ''});
+  showDone(orig ? 'BL prestation modifié' : 'BL prestation', n, `${P.client.trim()} · ${P.formule} · ${P.pax} PAX · ${fmt(montant)}`);
   newPresta(); renderPresta();
 };
 
@@ -537,7 +641,7 @@ $('p-save').onclick = () => {
    VENTE
    ===================================================================== */
 let V;
-function newVente(){ V = {separe:false, client:'', type:'Vente', mode:'', cart:[], remise:0, notes:''}; }
+function newVente(){ V = {separe:false, client:'', type:'Vente', mode:'', cart:[], remise:0, notes:'', editOf:null, n_bl:null}; }
 function renderVente(){
   const cats = {};
   C().produits.forEach(p => (cats[p.categorie||'Autre'] = cats[p.categorie||'Autre'] || []).push(p));
@@ -547,10 +651,12 @@ function renderVente(){
   [...$('v-mode').children].forEach(c => c.classList.toggle('on', (c.dataset.v==='separe') === V.separe));
   [...$('v-type').children].forEach(c => c.classList.toggle('on', c.dataset.v === V.type));
   $('v-client-wrap').classList.toggle('hide', !V.separe);
-  $('v-client').value = V.client; $('v-notes').value = V.notes; $('v-remise').value = V.remise || '';
+  setPicker($('v-client'), V.client); $('v-notes').value = V.notes;
+  $('v-edit').classList.toggle('hide', !V.editOf);
+  if (V.editOf) $('v-edit').querySelector('span').textContent = `Modification d'une vente du BL n° ${V.n_bl}`; $('v-remise').value = V.remise || '';
   $('v-remise-wrap').classList.toggle('hide', V.type !== 'Vente');
-  const n = venteNumber(V.separe, true);
-  $('v-no').textContent = 'N° ' + n + (!V.separe && S.dayVente && S.dayVente.date===today() ? ' (en cours)' : '');
+  const n = V.editOf ? V.n_bl : venteNumber(V.separe, true);
+  $('v-no').textContent = 'N° ' + n + (!V.editOf && !V.separe && S.dayVente && S.dayVente.date===today() ? ' (en cours)' : '');
   renderVLines();
 }
 function renderVLines(){
@@ -589,9 +695,12 @@ $('v-prods').onclick = e => {
   if (ex) ex.qte++; else V.cart.push({produit:p.nom, qte:1, prix:p.prix, offert:false});
   renderVLines();
 };
-$('v-mode').onclick = e => { const b=e.target.closest('.chip'); if(!b) return; V.separe = b.dataset.v==='separe'; renderVente(); };
+$('v-mode').onclick = e => { const b=e.target.closest('.chip'); if(!b) return;
+  if (V.editOf) return toast('En modification, le type de BL ne change pas. Annulez puis ressaisissez.');
+  V.separe = b.dataset.v==='separe'; renderVente(); };
 $('v-type').onclick = e => { const b=e.target.closest('.chip'); if(!b) return; V.type = b.dataset.v; renderVente(); };
-$('v-client').oninput = e => V.client = e.target.value;
+$('v-client').onclick = () => openClientPicker(c => { V.client = c.nom; renderVente(); });
+$('v-edit-cancel').onclick = () => { newVente(); renderVente(); };
 $('v-notes').oninput = e => V.notes = e.target.value;
 $('v-remise').oninput = e => { V.remise = Number(e.target.value)||0; updVTotal(); };
 $('v-save').onclick = () => {
@@ -600,7 +709,10 @@ $('v-save').onclick = () => {
   const t = venteTotals();
   if (V.type === 'Vente' && t.prods > 0 && !V.mode) return toast('Choisissez le mode de paiement.');
   if (V.type === 'Vente' && V.cart.some(l => !l.offert && !(Number(l.prix) > 0))) return toast('Un article n\'a pas de prix : saisissez-le ou cochez « Offert ».');
-  const n = venteNumber(V.separe, false);
+  const orig = V.editOf ? S.records.find(r => r.uuid === V.editOf) : null;
+  if (V.editOf && (!orig || isCancelled(orig.uuid))) { toast('Cette vente a déjà été modifiée ou annulée.'); newVente(); renderVente(); return; }
+  const n = orig ? orig.n_bl : venteNumber(V.separe, false);
+  if (orig) annuler(orig, 'MODIFICATION', true);
   const lignes = V.cart.map(l => {
     let type_mvt = 'Sortie (Vente)', prix = Number(l.prix)||0;
     if (V.type === 'Dégustation') { type_mvt = 'Sortie (Dégustation)'; prix = 0; }
@@ -608,10 +720,10 @@ $('v-save').onclick = () => {
     return {type_mvt, produit:l.produit, lot:lineLot(l), entree:'', sortie:l.qte, prix, total:prix*l.qte};
   });
   const client = V.separe ? V.client.trim() : 'VENTES DU JOUR';
-  addRecord({kind:'VENTE', n_bl:n, date:today(), heure:nowTime(), client, type_client:V.separe?'':'Particulier',
+  addRecord({kind:'VENTE', n_bl:n, date: orig ? orig.date : today(), heure: orig ? orig.heure : nowTime(), client, type_client:V.separe?'':'Particulier',
     formule:V.type, pax:'', gratuites:'', prix_unitaire:'', montant_prestation:0, total_produits:t.prods,
-    remise:-t.remise, total:t.total, mode_paiement:V.type==='Vente' ? (V.mode || 'Offert') : 'Offert', notes:V.notes, lignes});
-  showDone(V.separe ? 'BL vente séparé' : 'Ajouté au BL vente du jour', n, `${V.cart.reduce((s,l)=>s+l.qte,0)} article(s) · ${fmt(t.total)}`);
+    remise:-t.remise, total:t.total, mode_paiement:V.type==='Vente' ? (V.mode || 'Offert') : 'Offert', notes:V.notes, lignes, remplace_uuid: orig ? orig.uuid : ''});
+  showDone(orig ? 'Vente modifiée' : V.separe ? 'BL vente séparé' : 'Ajouté au BL vente du jour', n, `${V.cart.reduce((s,l)=>s+l.qte,0)} article(s) · ${fmt(t.total)}`);
   newVente(); renderVente();
 };
 
@@ -669,7 +781,7 @@ function trim(){
   S.records = S.records.filter(r => !r.synced || r.date >= lim);
 }
 const pending = () => S.records.filter(r => !r.synced);
-const nPending = () => pending().length + (S.lotsDirty ? 1 : 0);
+const nPending = () => pending().length + (S.lotsDirty ? 1 : 0) + (S.clientsDirty ? 1 : 0);
 let syncing = false;
 async function sync(){
   updSync();
@@ -679,12 +791,18 @@ async function sync(){
   try {
     const batch = pending().slice(0, 40).map(({synced, ...r}) => r);
     const sentLots = S.lotsDirty ? Object.assign({}, S.lots) : null;
-    const res = await fetch(S.url, {method:'POST', body: JSON.stringify({key:S.key, records:batch, lots:sentLots, appareil:S.device})});
+    const sentClients = S.clientsDirty ? S.newClients.slice() : null;
+    const res = await fetch(S.url, {method:'POST', body: JSON.stringify({key:S.key, records:batch, lots:sentLots, clients:sentClients, appareil:S.device})});
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'Réponse invalide');
     const done = new Set([...(j.accepted||[]), ...(j.duplicates||[])]);
     S.records.forEach(r => { if (done.has(r.uuid)) r.synced = true; });
     if (j.dernier_bl) { C().dernier_bl = j.dernier_bl; syncNumbers(); }
+    if (sentClients && j.clients_ok) {
+      sentClients.forEach(c => { if (!C().clients.some(x => normName(x.nom) === normName(c.nom))) C().clients.push(c); });
+      S.newClients = S.newClients.filter(c => !sentClients.includes(c) && !sentClients.some(x => x.nom === c.nom));
+      S.clientsDirty = S.newClients.length > 0;
+    }
     if (sentLots && j.lots_ok) {
       // Les lots sont désormais dans le Sheet : on les inscrit dans la config et on lève la surcharge locale
       Object.entries(sentLots).forEach(([nom, lot]) => {
@@ -740,6 +858,7 @@ function renderJour(){
   const d = $('j-date').value || today(); $('j-date').value = d;
   const recs = S.records.filter(r => r.date === d);
   const cancelled = new Set(recs.filter(r => r.kind==='ANNULATION').map(r => r.annule_uuid));
+  const modified = new Set(recs.filter(r => r.kind==='ANNULATION' && r.modification).map(r => r.annule_uuid));
   // Caisse
   const byMode = {}; let presta=0, vente=0, pax=0;
   recs.forEach(r => {
@@ -769,31 +888,62 @@ function renderJour(){
     Object.keys(S2).sort().map(p => `<tr><td>${esc(p)}</td>${used.map(c=>`<td class="n">${S2[p][c]||''}</td>`).join('')}</tr>`).join('') + '</table>'
     : '<div class="muted">Aucun mouvement.</div>';
   // Bons
-  const rows = recs.slice().reverse();
+  // Les anciennes versions des bons modifiés restent dans le Sheet (traçabilité) mais sont masquées ici
+  const rows = recs.slice().reverse().filter(r => !(r.kind==='ANNULATION' && r.modification) && !modified.has(r.uuid));
   $('j-bons').innerHTML = rows.length ? `<table><tr><th>N°</th><th>Type</th><th>Client</th><th>Détail</th><th class="n">Total</th><th>État</th><th></th></tr>` +
     rows.map(r => {
       const ann = cancelled.has(r.uuid);
-      const det = r.kind==='PRESTATION' ? `${esc(r.formule)} · ${r.pax} PAX` : r.kind==='MOUVEMENT' ? `${esc(r.formule)} · ${esc(r.lignes[0].produit)} × ${r.lignes[0].entree||r.lignes[0].sortie}` : r.kind==='ANNULATION' ? 'Annule le bon ' + esc(r.n_bl) : `${esc(r.formule)} · ${r.lignes.reduce((s,l)=>s+(Number(l.sortie)||0),0)} art.`;
-      const st = ann ? '<span class="st ann">Annulé</span>' : r.synced ? '<span class="st ok">Envoyé</span>' : '<span class="st wait">En attente</span>';
+      const det = r.kind==='PRESTATION' ? `${esc(r.formule)} · ${r.pax} PAX` : r.kind==='MOUVEMENT' ? `${esc(r.formule)} · ${esc(r.lignes[0].produit)} × ${r.lignes[0].entree||r.lignes[0].sortie}` : r.kind==='ANNULATION' ? (r.modification ? 'Ancienne version du bon ' : 'Annule le bon ') + esc(r.n_bl) : `${esc(r.formule)} · ${r.lignes.reduce((s,l)=>s+(Number(l.sortie)||0),0)} art.`;
+      const st = (r.remplace_uuid && !ann ? '<span class="st wait" style="background:#EDE7F6;color:#5B3FA0">Modifié</span> ' : '') + (ann ? '<span class="st ann">Annulé</span>' : r.synced ? '<span class="st ok">Envoyé</span>' : '<span class="st wait">En attente</span>');
       const canCancel = !ann && r.kind !== 'ANNULATION';
       return `<tr><td><b>${esc(r.n_bl||'—')}</b><div class="muted">${esc(r.heure||'')}</div></td><td>${esc(r.kind)}</td><td>${esc(r.client||'')}</td><td>${det}</td><td class="n">${r.kind==='MOUVEMENT'?'':fmt(r.total)}</td><td>${st}</td>
-        <td style="white-space:nowrap">${r.kind!=='MOUVEMENT'?`<button class="btn ghost small" data-pr="${r.uuid}">Imprimer</button> `:''}${canCancel?`<button class="btn danger small" data-an="${r.uuid}">Annuler</button>`:''}</td></tr>`;
+        <td style="white-space:nowrap">${r.kind!=='MOUVEMENT' && r.kind!=='ANNULATION'?`<button class="btn ghost small" data-pr="${r.uuid}">Imprimer</button> `:''}${canCancel && r.date===today() && (r.kind==='PRESTATION'||r.kind==='VENTE') ? `<button class="btn ghost small" data-ed="${r.uuid}">Modifier</button> `:''}${canCancel?`<button class="btn danger small" data-an="${r.uuid}">Annuler</button>`:''}</td></tr>`;
     }).join('') + '</table>' : '<div class="muted">Aucun bon ce jour.</div>';
 }
+const isCancelled = uuid => S.records.some(x => x.kind === 'ANNULATION' && x.annule_uuid === uuid);
+/** Contre-passation d'un bon. Utilisée pour l'annulation et, en interne, pour la modification. */
+function annuler(r, motif, isModif){
+  const neg = v => (v === '' || v == null) ? '' : -Number(v);
+  addRecord({kind:'ANNULATION', n_bl:r.n_bl, date:r.date, heure:nowTime(), client:r.client, type_client:r.type_client,
+    formule:r.formule, formule_orig:r.kind, pax:neg(r.pax), gratuites:neg(r.gratuites), prix_unitaire:r.prix_unitaire,
+    montant_prestation:neg(r.montant_prestation), total_produits:neg(r.total_produits), remise:neg(r.remise), total:neg(r.total),
+    mode_paiement:r.mode_paiement, notes:(isModif ? 'MODIFICATION' : 'ANNULATION : ' + motif), annule_uuid:r.uuid, modification:!!isModif,
+    lignes:(r.lignes||[]).map(l => ({...l, entree:neg(l.entree), sortie:neg(l.sortie), total:neg(l.total)}))});
+}
+function goTab(t){ document.querySelector(`nav button[data-t=${t}]`).click(); }
+function editRecord(r){
+  if (r.date !== today()) return toast('Seuls les bons du jour sont modifiables. Pour un bon plus ancien : Annuler puis ressaisir.');
+  if (isCancelled(r.uuid)) return toast('Ce bon a déjà été modifié ou annulé.');
+  if (r.kind === 'PRESTATION') {
+    P = {date:r.date, heure:r.heure, client:r.client, type_client:r.type_client, formule:r.formule, pax:Number(r.pax)||0,
+      grat:Number(r.gratuites)||0, prix:r.prix_unitaire, prixTouched:true, mode:r.mode_paiement, notes:r.notes||'',
+      lines:(r.lignes||[]).map(l => {
+        const f = C().formules.find(x => x.nom === r.formule), inF = f && (f.vins.includes(l.produit) || l.type_mvt==='Sortie (Cadeau)');
+        return {produit:l.produit, type_mvt:l.type_mvt, qte:Number(l.sortie)||0, lot:l.lot, touched:false,
+          cadeau:l.type_mvt==='Sortie (Cadeau)', extra:!inF};
+      }),
+      editOf:r.uuid, n_bl:r.n_bl};
+    goTab('presta'); renderPresta();
+  } else {
+    V = {separe:r.client !== 'VENTES DU JOUR', client:r.client === 'VENTES DU JOUR' ? '' : r.client, type:r.formule, mode:r.mode_paiement,
+      remise:Math.abs(Number(r.remise)||0), notes:r.notes||'', editOf:r.uuid, n_bl:r.n_bl,
+      cart:(r.lignes||[]).map(l => ({produit:l.produit, qte:Number(l.sortie)||0, lot:l.lot,
+        offert: r.formule==='Vente' && l.type_mvt==='Sortie (Offert)',
+        prix: (r.formule==='Vente' && l.type_mvt!=='Sortie (Offert)') ? Number(l.prix)||0 : prod(l.produit).prix}))};
+    goTab('vente');
+  }
+  toast('Corrigez puis enregistrez : le bon garde son numéro.');
+}
 $('j-bons').onclick = e => {
-  const pr = e.target.dataset.pr, an = e.target.dataset.an;
+  const pr = e.target.dataset.pr, an = e.target.dataset.an, ed = e.target.dataset.ed;
   if (pr) printBL(S.records.find(r => r.uuid === pr));
+  if (ed) editRecord(S.records.find(r => r.uuid === ed));
   if (an) {
     const r = S.records.find(x => x.uuid === an);
     if (!confirm(`Annuler le bon ${r.n_bl || ''} (${r.client || r.formule}) ?\nLes quantités seront remises en stock et le montant déduit.`)) return;
     const motif = prompt('Motif de l\'annulation (obligatoire) :');
     if (!motif || !motif.trim()) return toast('Annulation abandonnée : motif manquant.');
-    const neg = v => (v === '' || v == null) ? '' : -Number(v);
-    addRecord({kind:'ANNULATION', n_bl:r.n_bl, date:r.date, heure:nowTime(), client:r.client, type_client:r.type_client,
-      formule:r.formule, formule_orig:r.kind, pax:neg(r.pax), gratuites:neg(r.gratuites), prix_unitaire:r.prix_unitaire,
-      montant_prestation:neg(r.montant_prestation), total_produits:neg(r.total_produits), remise:neg(r.remise), total:neg(r.total),
-      mode_paiement:r.mode_paiement, notes:'ANNULATION : ' + motif.trim(), annule_uuid:r.uuid,
-      lignes:(r.lignes||[]).map(l => ({...l, entree:neg(l.entree), sortie:neg(l.sortie), total:neg(l.total)}))});
+    annuler(r, motif.trim(), false);
     toast('Bon annulé.'); renderJour();
   }
 };
@@ -886,7 +1036,6 @@ $('r-export').onclick = () => {
    Démarrage
    ===================================================================== */
 function refreshAll(){
-  $('dl-clients').innerHTML = C().clients.map(c => `<option value="${esc(c.nom)}">`).join('');
   renderPresta(); renderVente(); renderMvt(); renderLots(); updSync();
 }
 newPresta(); newVente();
