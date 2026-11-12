@@ -1,5 +1,5 @@
 // Cache hors ligne de l'app : la page s'ouvre même sans réseau.
-const CACHE = 'vv-bons-v1';
+const CACHE = 'vv-bons-v2';
 const FILES = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
